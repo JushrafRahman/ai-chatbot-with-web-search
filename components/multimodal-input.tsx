@@ -27,11 +27,14 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowDown } from 'lucide-react';
 import { useScrollToBottom } from '@/hooks/use-scroll-to-bottom';
 import type { VisibilityType } from './visibility-selector';
+import { SearchDropdown } from './search-dropdown';
 
 function PureMultimodalInput({
   chatId,
   input,
   setInput,
+  selectedSearchOption,
+  setSelectedSearchOption,
   status,
   stop,
   attachments,
@@ -46,6 +49,8 @@ function PureMultimodalInput({
   chatId: string;
   input: UseChatHelpers['input'];
   setInput: UseChatHelpers['setInput'];
+  selectedSearchOption?: string;
+  setSelectedSearchOption?: (option: string) => void;
   status: UseChatHelpers['status'];
   stop: () => void;
   attachments: Array<Attachment>;
@@ -295,16 +300,25 @@ function PureMultimodalInput({
         <AttachmentsButton fileInputRef={fileInputRef} status={status} />
       </div>
 
-      <div className="absolute bottom-0 right-0 p-2 w-fit flex flex-row justify-end">
-        {status === 'submitted' ? (
-          <StopButton stop={stop} setMessages={setMessages} />
-        ) : (
-          <SendButton
-            input={input}
-            submitForm={submitForm}
-            uploadQueue={uploadQueue}
+      <div className="absolute bottom-0 right-0 p-2 flex flex-row gap-2 justify-end">
+        <div className="w-fit">
+          <SearchDropdown
+            selectedSearchOption={selectedSearchOption || 'all'}
+            setSelectedSearchOption={setSelectedSearchOption || (() => {})}
           />
-        )}
+        </div>
+
+        <div className="w-fit">
+          {status === 'submitted' ? (
+            <StopButton stop={stop} setMessages={setMessages} />
+          ) : (
+            <SendButton
+              input={input}
+              submitForm={submitForm}
+              uploadQueue={uploadQueue}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
@@ -317,6 +331,8 @@ export const MultimodalInput = memo(
     if (prevProps.status !== nextProps.status) return false;
     if (!equal(prevProps.attachments, nextProps.attachments)) return false;
     if (prevProps.selectedVisibilityType !== nextProps.selectedVisibilityType)
+      return false;
+    if (prevProps.selectedSearchOption !== nextProps.selectedSearchOption)
       return false;
 
     return true;

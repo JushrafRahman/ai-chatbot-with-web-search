@@ -87,6 +87,8 @@ export function Chat({
   const query = searchParams.get('query');
 
   const [hasAppendedQuery, setHasAppendedQuery] = useState(false);
+  const [selectedSearchOption, setSelectedSearchOption] =
+    useState<string>('all');
 
   useEffect(() => {
     if (query && !hasAppendedQuery) {
@@ -144,6 +146,16 @@ export function Chat({
               chatId={id}
               input={input}
               setInput={setInput}
+              selectedSearchOption={selectedSearchOption}
+              setSelectedSearchOption={(newSearchOption) => {
+                console.log(
+                  'updating search option in parent, prev option: ',
+                  selectedSearchOption,
+                  ' and new option: ',
+                  newSearchOption,
+                );
+                setSelectedSearchOption(newSearchOption);
+              }}
               handleSubmit={handleSubmit}
               status={status}
               stop={stop}
