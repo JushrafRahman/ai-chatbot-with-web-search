@@ -2,7 +2,7 @@
 
 import type { Attachment, UIMessage } from 'ai';
 import { useChat } from '@ai-sdk/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { ChatHeader } from '@/components/chat-header';
 import type { Vote } from '@/lib/db/schema';
@@ -46,6 +46,7 @@ export function Chat({
     initialVisibilityType,
   });
 
+  const searchCategoryRef = useRef<WebSearchCategory | undefined>();
   const [selectedSearchCategory, setSelectedSearchCategory] =
     useState<WebSearchCategory>();
 
@@ -73,7 +74,7 @@ export function Chat({
       message: body.messages.at(-1),
       selectedChatModel: initialChatModel,
       selectedVisibilityType: visibilityType,
-      searchCategory: selectedSearchCategory,
+      searchCategory: searchCategoryRef.current,
     }),
     onFinish: () => {
       mutate(unstable_serialize(getChatHistoryPaginationKey));
@@ -150,7 +151,10 @@ export function Chat({
               input={input}
               setInput={setInput}
               selectedSearchCategory={selectedSearchCategory}
-              setSelectedSearchCategory={setSelectedSearchCategory}
+              setSelectedSearchCategory={(newCategory) => {
+                searchCategoryRef.current = newCategory;
+                setSelectedSearchCategory(newCategory);
+              }}
               handleSubmit={handleSubmit}
               status={status}
               stop={stop}
