@@ -10,27 +10,40 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { CheckCircleFillIcon, ChevronDownIcon } from './icons';
 
-const webSearchOptions: Array<{
-  id: string;
-  label: string;
-  description: string;
-}> = [
-  {
-    id: 'all',
-    label: '---',
-    description: 'Search for all options',
-  },
+export const webSearchOptions = [
   {
     id: 'company',
     label: 'Company',
-    description: 'Search for company information',
+  },
+  {
+    id: 'research paper',
+    label: 'Research Paper',
+  },
+  {
+    id: 'news',
+    label: 'News Article',
+  },
+  {
+    id: 'pdf',
+    label: 'PDF',
   },
   {
     id: 'github',
-    label: 'GitHub',
-    description: 'Search for GitHub repositories',
+    label: 'Github',
   },
-];
+  {
+    id: 'personal site',
+    label: 'Personal Site',
+  },
+  {
+    id: 'linkedin profile',
+    label: 'LinkedIn Profile',
+  },
+  {
+    id: 'financial report',
+    label: 'Financial Report',
+  },
+] as const;
 
 export function SearchDropdown({
   selectedSearchOption,
