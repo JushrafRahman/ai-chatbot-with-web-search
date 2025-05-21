@@ -47,12 +47,17 @@ const webSearchOptions = [
 
 export type WebSearchCategory = (typeof webSearchOptions)[number]['id'];
 
+const clearSelectionCategory = {
+  id: 'clear',
+  label: '---',
+};
+
 export function SearchDropdown({
   selectedSearchCategory,
   setSelectedSearchCategory,
 }: {
   selectedSearchCategory?: WebSearchCategory;
-  setSelectedSearchCategory?: (option: WebSearchCategory) => void;
+  setSelectedSearchCategory?: (option: WebSearchCategory | undefined) => void;
 } & React.ComponentProps<typeof Button>) {
   const [open, setOpen] = useState(false);
 
@@ -77,12 +82,18 @@ export function SearchDropdown({
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="start" className="min-w-[300px]">
-        {webSearchOptions.map((option) => (
+        {[clearSelectionCategory, ...webSearchOptions].map((option) => (
           <DropdownMenuItem
             data-testid={`search-option-selector-item-${option.id}`}
             key={option.id}
             onSelect={() => {
-              setSelectedSearchCategory?.(option.id);
+              if (setSelectedSearchCategory) {
+                if (option.id === 'clear') {
+                  setSelectedSearchCategory(undefined);
+                } else {
+                  setSelectedSearchCategory(option.id as WebSearchCategory);
+                }
+              }
               setOpen(false);
             }}
             className="gap-4 group/item flex flex-row justify-between items-center"

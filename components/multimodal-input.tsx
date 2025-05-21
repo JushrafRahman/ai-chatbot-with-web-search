@@ -50,7 +50,7 @@ function PureMultimodalInput({
   input: UseChatHelpers['input'];
   setInput: UseChatHelpers['setInput'];
   selectedSearchCategory?: WebSearchCategory;
-  setSelectedSearchCategory?: (option: WebSearchCategory) => void;
+  setSelectedSearchCategory?: (option: WebSearchCategory | undefined) => void;
   status: UseChatHelpers['status'];
   stop: () => void;
   attachments: Array<Attachment>;
