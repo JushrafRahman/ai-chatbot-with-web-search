@@ -117,9 +117,6 @@ Example output: "meta llama 3 github implementation tutorial"`;
   });
 
   const searchQuery = queryGenResponse.text.trim();
-  console.log('Optimized search query:');
-  console.log(searchQuery);
-
   return searchQuery;
 }
 
@@ -162,9 +159,6 @@ function formatSearchResultsForUser(
     formattedResults += `---\n\n`;
   });
 
-  console.log('formatted results: ');
-  console.log(formattedResults);
-
   return formattedResults;
 }
 
@@ -186,9 +180,6 @@ export async function POST(request: Request) {
       selectedVisibilityType,
       searchCategory,
     } = requestBody;
-
-    console.log('POST request received');
-    console.log(requestBody);
 
     const session = await auth();
 
