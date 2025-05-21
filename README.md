@@ -3,6 +3,8 @@
 
 https://github.com/user-attachments/assets/7ad4d45d-efda-41f9-a132-36331e5c67b7
 
+## [Live link](https://ai-chatbot-with-web-search.vercel.app/)
+
 ## Features
 - [Exa](https://dashboard.exa.ai/playground) Exa Search
   - Find webpages using Exa’s embeddings-based or Google-style keyword search
