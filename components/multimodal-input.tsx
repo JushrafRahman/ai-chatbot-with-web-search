@@ -27,14 +27,14 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowDown } from 'lucide-react';
 import { useScrollToBottom } from '@/hooks/use-scroll-to-bottom';
 import type { VisibilityType } from './visibility-selector';
-import { SearchDropdown } from './search-dropdown';
+import { SearchDropdown, type WebSearchCategory } from './search-dropdown';
 
 function PureMultimodalInput({
   chatId,
   input,
   setInput,
-  selectedSearchOption,
-  setSelectedSearchOption,
+  selectedSearchCategory,
+  setSelectedSearchCategory,
   status,
   stop,
   attachments,
@@ -49,8 +49,8 @@ function PureMultimodalInput({
   chatId: string;
   input: UseChatHelpers['input'];
   setInput: UseChatHelpers['setInput'];
-  selectedSearchOption?: string;
-  setSelectedSearchOption?: (option: string) => void;
+  selectedSearchCategory?: WebSearchCategory;
+  setSelectedSearchCategory?: (option: WebSearchCategory) => void;
   status: UseChatHelpers['status'];
   stop: () => void;
   attachments: Array<Attachment>;
@@ -303,8 +303,8 @@ function PureMultimodalInput({
       <div className="absolute bottom-0 right-0 p-2 flex flex-row gap-2 justify-end">
         <div className="w-fit">
           <SearchDropdown
-            selectedSearchOption={selectedSearchOption || 'all'}
-            setSelectedSearchOption={setSelectedSearchOption || (() => {})}
+            selectedSearchCategory={selectedSearchCategory}
+            setSelectedSearchCategory={setSelectedSearchCategory}
           />
         </div>
 
@@ -332,7 +332,7 @@ export const MultimodalInput = memo(
     if (!equal(prevProps.attachments, nextProps.attachments)) return false;
     if (prevProps.selectedVisibilityType !== nextProps.selectedVisibilityType)
       return false;
-    if (prevProps.selectedSearchOption !== nextProps.selectedSearchOption)
+    if (prevProps.selectedSearchCategory !== nextProps.selectedSearchCategory)
       return false;
 
     return true;

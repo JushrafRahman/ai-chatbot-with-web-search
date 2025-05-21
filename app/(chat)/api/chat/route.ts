@@ -169,7 +169,6 @@ function formatSearchResultsForUser(
 }
 
 export async function POST(request: Request) {
-  console.log('POST request received');
   let requestBody: PostRequestBody;
 
   try {
@@ -188,7 +187,7 @@ export async function POST(request: Request) {
       searchCategory,
     } = requestBody;
 
-    console.log('at POST, request body: ');
+    console.log('POST request received');
     console.log(requestBody);
 
     const session = await auth();
@@ -262,7 +261,6 @@ export async function POST(request: Request) {
 
     const stream = createDataStream({
       execute: async (dataStream) => {
-        // should this be async?
         const baseSystemPrompt = systemPrompt({
           selectedChatModel,
           requestHints,
@@ -270,8 +268,9 @@ export async function POST(request: Request) {
 
         const model = myProvider.languageModel(selectedChatModel);
 
-        const shouldMakeWebSearch = searchCategory !== 'all';
-        if (shouldMakeWebSearch) {
+        if (searchCategory) {
+          // make web search
+
           try {
             dataStream.writeData('Searching for relevant information...');
 
@@ -283,18 +282,20 @@ export async function POST(request: Request) {
               systemPrompt: baseSystemPrompt,
             });
 
-            // exa-ai search with optimized query
+            // make exa-ai search with optimized query
             const webSearchResult = await webSearch({
               searchQuery: optimizedQuery,
               searchCategory,
             });
 
+            // format exa-ai response to feed into LLM again
             const formattedResults = formatSearchResultsForUser(
               webSearchResult,
               optimizedQuery,
             );
 
-            // stream the search results (can we remove the llm call and directly render formatted response)
+            // stream the search results
+            // TODO: remove the llm call and directly render formatted response
             const resultsStream = streamText({
               model,
               system: baseSystemPrompt,

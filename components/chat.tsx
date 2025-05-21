@@ -20,6 +20,7 @@ import { useSearchParams } from 'next/navigation';
 import { useChatVisibility } from '@/hooks/use-chat-visibility';
 import { useAutoResume } from '@/hooks/use-auto-resume';
 import { ChatSDKError } from '@/lib/errors';
+import type { WebSearchCategory } from './search-dropdown';
 
 export function Chat({
   id,
@@ -45,6 +46,9 @@ export function Chat({
     initialVisibilityType,
   });
 
+  const [selectedSearchCategory, setSelectedSearchCategory] =
+    useState<WebSearchCategory>();
+
   const {
     messages,
     setMessages,
@@ -69,7 +73,7 @@ export function Chat({
       message: body.messages.at(-1),
       selectedChatModel: initialChatModel,
       selectedVisibilityType: visibilityType,
-      searchCategory: selectedSearchOption,
+      searchCategory: selectedSearchCategory,
     }),
     onFinish: () => {
       mutate(unstable_serialize(getChatHistoryPaginationKey));
@@ -88,8 +92,6 @@ export function Chat({
   const query = searchParams.get('query');
 
   const [hasAppendedQuery, setHasAppendedQuery] = useState(false);
-  const [selectedSearchOption, setSelectedSearchOption] =
-    useState<string>('all');
 
   useEffect(() => {
     if (query && !hasAppendedQuery) {
@@ -147,16 +149,8 @@ export function Chat({
               chatId={id}
               input={input}
               setInput={setInput}
-              selectedSearchOption={selectedSearchOption}
-              setSelectedSearchOption={(newSearchOption) => {
-                console.log(
-                  'updating search option in parent, prev option: ',
-                  selectedSearchOption,
-                  ' and new option: ',
-                  newSearchOption,
-                );
-                setSelectedSearchOption(newSearchOption);
-              }}
+              selectedSearchCategory={selectedSearchCategory}
+              setSelectedSearchCategory={setSelectedSearchCategory}
               handleSubmit={handleSubmit}
               status={status}
               stop={stop}

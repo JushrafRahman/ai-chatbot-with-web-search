@@ -1,6 +1,6 @@
 import Exa from 'exa-js';
 import { config } from 'dotenv';
-import type { webSearchOptions } from '@/components/search-dropdown';
+import type { WebSearchCategory } from '@/components/search-dropdown';
 
 config({
   path: '.env.local',
@@ -11,8 +11,6 @@ const exa = new Exa(process.env.EXA_API_KEY);
 if (!process.env.EXA_API_KEY) {
   throw new Error('Missing EXA_API_KEY in environment variables');
 }
-
-export type WebSearchCategory = (typeof webSearchOptions)[number]['id'];
 
 export type WebSearchResponse = Awaited<
   ReturnType<typeof exa.searchAndContents>

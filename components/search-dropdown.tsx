@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { CheckCircleFillIcon, ChevronDownIcon } from './icons';
 
-export const webSearchOptions = [
+const webSearchOptions = [
   {
     id: 'company',
     label: 'Company',
@@ -45,12 +45,14 @@ export const webSearchOptions = [
   },
 ] as const;
 
+export type WebSearchCategory = (typeof webSearchOptions)[number]['id'];
+
 export function SearchDropdown({
-  selectedSearchOption,
-  setSelectedSearchOption,
+  selectedSearchCategory,
+  setSelectedSearchCategory,
 }: {
-  selectedSearchOption: string | null;
-  setSelectedSearchOption: (option: string) => void;
+  selectedSearchCategory?: WebSearchCategory;
+  setSelectedSearchCategory?: (option: WebSearchCategory) => void;
 } & React.ComponentProps<typeof Button>) {
   const [open, setOpen] = useState(false);
 
@@ -67,7 +69,7 @@ export function SearchDropdown({
         >
           {
             webSearchOptions.find(
-              (option) => option.id === selectedSearchOption,
+              (option) => option.id === selectedSearchCategory,
             )?.label
           }
           <ChevronDownIcon />
@@ -80,12 +82,11 @@ export function SearchDropdown({
             data-testid={`search-option-selector-item-${option.id}`}
             key={option.id}
             onSelect={() => {
-              console.log('updating option: ', option.id);
-              setSelectedSearchOption(option.id);
+              setSelectedSearchCategory?.(option.id);
               setOpen(false);
             }}
             className="gap-4 group/item flex flex-row justify-between items-center"
-            data-active={option.id === selectedSearchOption}
+            data-active={option.id === selectedSearchCategory}
           >
             <div className="flex flex-col gap-1 items-start">
               {option.label}
