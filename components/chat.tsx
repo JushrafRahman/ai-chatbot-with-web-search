@@ -69,6 +69,7 @@ export function Chat({
       message: body.messages.at(-1),
       selectedChatModel: initialChatModel,
       selectedVisibilityType: visibilityType,
+      searchCategory: selectedSearchOption,
     }),
     onFinish: () => {
       mutate(unstable_serialize(getChatHistoryPaginationKey));

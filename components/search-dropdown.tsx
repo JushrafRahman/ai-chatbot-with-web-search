@@ -41,9 +41,6 @@ export function SearchDropdown({
 } & React.ComponentProps<typeof Button>) {
   const [open, setOpen] = useState(false);
 
-  console.log('This component is being rendered!');
-  console.log('selectedSearchOption: ', selectedSearchOption);
-
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger

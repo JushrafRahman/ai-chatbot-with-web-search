@@ -2,6 +2,9 @@ import {
   appendClientMessage,
   appendResponseMessages,
   createDataStream,
+  generateText,
+  type LanguageModelV1,
+  type Message,
   smoothStream,
   streamText,
 } from 'ai';
@@ -36,6 +39,7 @@ import { after } from 'next/server';
 import type { Chat } from '@/lib/db/schema';
 import { differenceInSeconds } from 'date-fns';
 import { ChatSDKError } from '@/lib/errors';
+import { webSearch, type WebSearchResponse } from '@/lib/ai/tools/web-search';
 
 export const maxDuration = 60;
 
@@ -61,7 +65,111 @@ function getStreamContext() {
   return globalStreamContext;
 }
 
+async function generateOptimizedSearchQuery({
+  messages,
+  currentMessage,
+  model,
+  systemPrompt,
+}: {
+  messages: Message[];
+  currentMessage: PostRequestBody['message'];
+  model: LanguageModelV1;
+  systemPrompt: string; // do we need more system prompt to generate a good search query?
+}): Promise<string> {
+  // create a focused system prompt for query generation
+  const queryGenSystemPrompt = `${systemPrompt}
+  
+Your task is to generate an optimal search query based on the user's message and conversation history. The search query will be used to search the web i.e google for relevant information.
+
+INSTRUCTIONS:
+1. Analyze the user's current message and previous conversation context
+2. Extract the key information needs and search intent
+3. Formulate a clear, concise search query (3-10 words) that will yield the most relevant results
+4. Return ONLY the search query text with no additional explanation or formatting
+5. Focus on specific technical terms, entities, or concepts that will help find precise information
+6. Avoid generic terms that would lead to broad results
+
+Example user message: "I want to learn about Meta's latest LLM model and how to use it"
+Example output: "meta llama 3 github implementation tutorial"`;
+
+  // use last 5 messages for context
+  const conversationHistory = messages.slice(-5);
+
+  const queryGenMessage: Message = {
+    id: generateUUID(),
+    role: 'user',
+    content: `Generate a search query for: ${currentMessage.parts?.[0]?.text ?? ''}`,
+    parts: [
+      {
+        type: 'text',
+        text: `Generate a search query for: ${currentMessage.parts?.[0]?.text ?? ''}`,
+      },
+    ],
+  };
+
+  // call llm to generate optimized search query
+  const queryGenResponse = await generateText({
+    model,
+    system: queryGenSystemPrompt,
+    messages: [...conversationHistory, queryGenMessage],
+    temperature: 0.1, // for more focused queries
+    maxTokens: 30, // short response - just the query
+  });
+
+  const searchQuery = queryGenResponse.text.trim();
+  console.log('Optimized search query:');
+  console.log(searchQuery);
+
+  return searchQuery;
+}
+
+function formatSearchResultsForUser(
+  searchResults: WebSearchResponse,
+  searchQuery: string,
+): string {
+  if (
+    !searchResults ||
+    !searchResults.results ||
+    searchResults.results.length === 0
+  ) {
+    return `## Search Results for "${searchQuery}"\n\nNo results found. Try refining your search or asking a different question.`;
+  }
+
+  const { results } = searchResults;
+
+  // Create a formatted string with the search results
+  let formattedResults = `## Search Results for "${searchQuery}"\n\n`;
+
+  results.forEach((result, index) => {
+    const { title, url, publishedDate, author, text } = result;
+
+    // Format date if available
+    const date = publishedDate
+      ? new Date(publishedDate).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })
+      : '';
+
+    // Add formatted result
+    formattedResults += `### ${index + 1}. [${title ?? ''}](${url ?? ''})\n`;
+    formattedResults += date ? `Published: ${date}\n` : '';
+    formattedResults += author ? `Author: ${author}\n` : '';
+    formattedResults += text?.length
+      ? `\n${text.slice(0, 300)}${text.length > 300 ? '...' : ''}\n\n`
+      : '';
+    formattedResults += `---\n\n`;
+  });
+
+  console.log('formatted results: ');
+  console.log(formattedResults);
+
+  return formattedResults;
+}
+
 export async function POST(request: Request) {
+  console.log('POST request received');
   let requestBody: PostRequestBody;
 
   try {
@@ -72,8 +180,16 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { id, message, selectedChatModel, selectedVisibilityType } =
-      requestBody;
+    const {
+      id,
+      message,
+      selectedChatModel,
+      selectedVisibilityType,
+      searchCategory,
+    } = requestBody;
+
+    console.log('at POST, request body: ');
+    console.log(requestBody);
 
     const session = await auth();
 
@@ -145,79 +261,174 @@ export async function POST(request: Request) {
     await createStreamId({ streamId, chatId: id });
 
     const stream = createDataStream({
-      execute: (dataStream) => {
-        const result = streamText({
-          model: myProvider.languageModel(selectedChatModel),
-          system: systemPrompt({ selectedChatModel, requestHints }),
-          messages,
-          maxSteps: 5,
-          experimental_activeTools:
-            selectedChatModel === 'chat-model-reasoning'
-              ? []
-              : [
-                  'getWeather',
-                  'createDocument',
-                  'updateDocument',
-                  'requestSuggestions',
-                ],
-          experimental_transform: smoothStream({ chunking: 'word' }),
-          experimental_generateMessageId: generateUUID,
-          tools: {
-            getWeather,
-            createDocument: createDocument({ session, dataStream }),
-            updateDocument: updateDocument({ session, dataStream }),
-            requestSuggestions: requestSuggestions({
-              session,
-              dataStream,
-            }),
-          },
-          onFinish: async ({ response }) => {
-            if (session.user?.id) {
-              try {
-                const assistantId = getTrailingMessageId({
-                  messages: response.messages.filter(
-                    (message) => message.role === 'assistant',
-                  ),
-                });
+      execute: async (dataStream) => {
+        // should this be async?
+        const baseSystemPrompt = systemPrompt({
+          selectedChatModel,
+          requestHints,
+        });
 
-                if (!assistantId) {
-                  throw new Error('No assistant message found!');
+        const model = myProvider.languageModel(selectedChatModel);
+
+        const shouldMakeWebSearch = searchCategory !== 'all';
+        if (shouldMakeWebSearch) {
+          try {
+            dataStream.writeData('Searching for relevant information...');
+
+            // use LLM to generate optimized search query for exa-ai
+            const optimizedQuery = await generateOptimizedSearchQuery({
+              messages,
+              currentMessage: message,
+              model,
+              systemPrompt: baseSystemPrompt,
+            });
+
+            // exa-ai search with optimized query
+            const webSearchResult = await webSearch({
+              searchQuery: optimizedQuery,
+              searchCategory,
+            });
+
+            const formattedResults = formatSearchResultsForUser(
+              webSearchResult,
+              optimizedQuery,
+            );
+
+            // stream the search results (can we remove the llm call and directly render formatted response)
+            const resultsStream = streamText({
+              model,
+              system: baseSystemPrompt,
+              messages: [
+                {
+                  role: 'assistant',
+                  content: formattedResults,
+                },
+                {
+                  role: 'user',
+                  content: 'Show search results',
+                },
+              ],
+              experimental_generateMessageId: generateUUID,
+              onFinish: async ({ response }) => {
+                if (session.user?.id) {
+                  try {
+                    const assistantId = getTrailingMessageId({
+                      messages: response.messages.filter(
+                        (message) => message.role === 'assistant',
+                      ),
+                    });
+
+                    if (!assistantId) {
+                      throw new Error('No assistant message found!');
+                    }
+
+                    const [, assistantMessage] = appendResponseMessages({
+                      messages: [message],
+                      responseMessages: response.messages,
+                    });
+
+                    await saveMessages({
+                      messages: [
+                        {
+                          id: assistantId,
+                          chatId: id,
+                          role: assistantMessage.role,
+                          parts: assistantMessage.parts,
+                          attachments:
+                            assistantMessage.experimental_attachments ?? [],
+                          createdAt: new Date(),
+                        },
+                      ],
+                    });
+                  } catch (_) {
+                    console.error('Failed to save chat');
+                  }
                 }
+              },
+            });
 
-                const [, assistantMessage] = appendResponseMessages({
-                  messages: [message],
-                  responseMessages: response.messages,
-                });
-
-                await saveMessages({
-                  messages: [
-                    {
-                      id: assistantId,
-                      chatId: id,
-                      role: assistantMessage.role,
-                      parts: assistantMessage.parts,
-                      attachments:
-                        assistantMessage.experimental_attachments ?? [],
-                      createdAt: new Date(),
-                    },
+            resultsStream.consumeStream();
+            resultsStream.mergeIntoDataStream(dataStream, {
+              sendReasoning: false,
+            });
+          } catch (error) {
+            console.error('Error in web search workflow:');
+            console.error(error);
+          }
+        } else {
+          const result = streamText({
+            model,
+            system: baseSystemPrompt,
+            messages,
+            maxSteps: 5,
+            experimental_activeTools:
+              selectedChatModel === 'chat-model-reasoning'
+                ? []
+                : [
+                    'getWeather',
+                    'createDocument',
+                    'updateDocument',
+                    'requestSuggestions',
                   ],
-                });
-              } catch (_) {
-                console.error('Failed to save chat');
+            experimental_transform: smoothStream({ chunking: 'word' }),
+            experimental_generateMessageId: generateUUID,
+            tools: {
+              getWeather,
+              createDocument: createDocument({ session, dataStream }),
+              updateDocument: updateDocument({ session, dataStream }),
+              requestSuggestions: requestSuggestions({
+                session,
+                dataStream,
+              }),
+            },
+            onFinish: async ({ response }) => {
+              if (session.user?.id) {
+                try {
+                  const assistantId = getTrailingMessageId({
+                    messages: response.messages.filter(
+                      (message) => message.role === 'assistant',
+                    ),
+                  });
+
+                  if (!assistantId) {
+                    throw new Error('No assistant message found!');
+                  }
+
+                  const [, assistantMessage] = appendResponseMessages({
+                    messages: [message],
+                    responseMessages: response.messages,
+                  });
+
+                  await saveMessages({
+                    messages: [
+                      {
+                        id: assistantId,
+                        chatId: id,
+                        role: assistantMessage.role,
+                        parts: assistantMessage.parts,
+                        attachments:
+                          assistantMessage.experimental_attachments ?? [],
+                        createdAt: new Date(),
+                      },
+                    ],
+                  });
+                } catch (_) {
+                  console.error('Failed to save chat');
+                }
               }
-            }
-          },
-          experimental_telemetry: {
-            isEnabled: isProductionEnvironment,
-            functionId: 'stream-text',
-          },
-        });
+            },
+            experimental_telemetry: {
+              isEnabled: isProductionEnvironment,
+              functionId: 'stream-text',
+            },
+          });
 
-        result.consumeStream();
+          result.consumeStream();
 
-        result.mergeIntoDataStream(dataStream, {
-          sendReasoning: true,
-        });
+          result.mergeIntoDataStream(dataStream, {
+            sendReasoning: true,
+          });
+        }
       },
       onError: () => {
         return 'Oops, an error occurred!';
