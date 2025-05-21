@@ -67,18 +67,21 @@ export function SearchDropdown({
         asChild
         className="w-fit data-[state=open]:bg-accent data-[state=open]:text-accent-foreground"
       >
-        <Button
-          data-testid="search-option-selector"
-          variant="outline"
-          className="hidden md:flex md:px-2 md:h-[34px]"
-        >
-          {
-            webSearchOptions.find(
-              (option) => option.id === selectedSearchCategory,
-            )?.label
-          }
-          <ChevronDownIcon />
-        </Button>
+        <div className="flex flex-row gap-2 items-center justify-end min-w-[250px]">
+          <div>{'Result Category: '}</div>
+          <Button
+            data-testid="search-option-selector"
+            variant="outline"
+            className="hidden md:flex md:px-2 md:h-[34px] min-w-[100px]"
+          >
+            {
+              webSearchOptions.find(
+                (option) => option.id === selectedSearchCategory,
+              )?.label
+            }
+            <ChevronDownIcon />
+          </Button>
+        </div>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="start" className="min-w-[300px]">
