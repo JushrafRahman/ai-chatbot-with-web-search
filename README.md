@@ -6,17 +6,28 @@ https://github.com/user-attachments/assets/7ad4d45d-efda-41f9-a132-36331e5c67b7
 ## [Live link](https://ai-chatbot-with-web-search.vercel.app/)
 
 ## Features
+- Dual-mode chatbot: Normal LLM responses OR targeted web search results
+- Domain-specific search: Select from dropdown options (GitHub, LinkedIn, Articles, News, etc.)
+- Real-time results: Get live data from specific platforms
+- Example: Select "LinkedIn" → Ask for "big tech recruiters hiring software engineers" → Receive 5-10 actual recruiter profiles
+
+## Architecture
+- User selects search category from dropdown and submits query
+- Chat context passed to LLM to generate optimized search query
+- Refined query sent to Exa AI API for domain-specific results
+- Search results fed into LLM again which then generates final response to user
+- Maintains conversational flow while providing current information
+
+## Tech Stack
 - [Exa](https://dashboard.exa.ai/playground) Exa Search
   - Find webpages using Exa’s embeddings-based or Google-style keyword search
   - Get clean, up-to-date, parsed HTML from Exa search results
   - Based on a link, find and return pages that are similar in meaning
   - Get direct answers to questions using Exa’s Answer API
 - [Next.js](https://nextjs.org) App Router
-  - React Server Components (RSCs) and Server Actions for server-side rendering and increased performance
 - [AI SDK](https://sdk.vercel.ai/docs)
   - Unified API for generating text, structured objects, and tool calls with LLMs
   - Hooks for building dynamic chat and generative user interfaces
-  - Supports xAI (default), OpenAI, Fireworks, and other model providers
 - Data Persistence
   - [Neon Serverless Postgres](https://vercel.com/marketplace/neon) for saving chat history and user data
   - [Vercel Blob](https://vercel.com/storage/blob) for efficient file storage
