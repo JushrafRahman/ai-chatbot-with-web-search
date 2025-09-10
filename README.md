@@ -3,8 +3,6 @@
 
 https://github.com/user-attachments/assets/7ad4d45d-efda-41f9-a132-36331e5c67b7
 
-## [Live link](https://ai-chatbot-with-web-search.vercel.app/)
-
 ## Features
 - Dual-mode chatbot: Normal LLM responses OR targeted web search results
 - Domain-specific search: Select from dropdown options (GitHub, LinkedIn, Articles, News, etc.)
@@ -39,8 +37,7 @@ https://github.com/user-attachments/assets/7ad4d45d-efda-41f9-a132-36331e5c67b7
 
 ## Running locally
 
-Must populate the environment variables [defined in `.env.example`](.env.example) to run this chatbot. Recommended to use [Vercel Environment Variables](https://vercel.com/docs/projects/environment-variables), but a `.env` file is all that is necessary.
-
+Must populate the environment variables [defined in `.env.example`](.env.example) to run this chatbot.
 1. Install Vercel CLI: `npm i -g vercel`
 2. Link local instance with Vercel and GitHub accounts (creates `.vercel` directory): `vercel link`
 3. Download your environment variables: `vercel env pull`
